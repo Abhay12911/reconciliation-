@@ -1,8 +1,8 @@
-
 import { v4 as uuidv4 } from "uuid";
 import { parseCSV } from "../utils/csvParser.js";
 import { ingestTransactions } from "../services/ingestion.service.js";
 import { matchTransactions } from "../services/matching.service.js";
+import { saveReport } from "../services/report.service.js";
 
 export const reconcile = async (req, res) => {
   try {
@@ -19,9 +19,16 @@ export const reconcile = async (req, res) => {
     await ingestTransactions(userRows, "USER", runId);
     await ingestTransactions(exchangeRows, "EXCHANGE", runId);
 
-    const result = await matchTransactions(runId, config);
+    const results = await matchTransactions(runId, config);
 
-    res.json({ runId, result });
+    //  save report
+    const filePath = await saveReport(runId, results);
+
+    res.json({
+      runId,
+      message: "Reconciliation complete",
+      reportFile: filePath
+    });
 
   } catch (err) {
     res.status(500).json({ error: err.message });
